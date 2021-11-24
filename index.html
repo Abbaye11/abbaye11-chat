@@ -17,6 +17,7 @@
       .current-user { color:red; font-weight: bolder;}
       .label-user-message {margin: 10px; font-weight: bold;}
       .label-message {font-style: italic;}
+      .close {display: none;}
     </style>
     <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.1/font/bootstrap-icons.css">
@@ -27,8 +28,10 @@
 
     <script>
         
-        var socket = io('https://abbaye11-chat.azurewebsites.net', {autoConnect: false});
-        //socket.open();
+      
+        //var socket = io('https://abbaye11-chat.azurewebsites.net', {autoConnect: false});
+        var socket = io('http://localhost:3000', {autoConnect: false});
+        
       
         $(function () {
             
@@ -38,6 +41,10 @@
             var form = document.getElementById('form');
             var input = document.getElementById('input');
 
+            $('#modalLoginForm').modal({
+                backdrop: 'static',
+                keyboard: false
+            })
             $('#modalLoginForm').modal('show')
             $('#username').val("");
 
@@ -53,6 +60,10 @@
                     currentUser = {}
                     socket.close();
                     participants.empty();
+                    $('#modalLogout').modal({
+                        backdrop: 'static',
+                        keyboard: false
+                    })
                     $('#modalLogout').modal('show');
                     
                 })
