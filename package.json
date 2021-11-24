@@ -1,1 +1,9 @@
-{"name":"abbaye11-chat","version":"0.0.1","description":"Abbaye11 chat","dependencies":{"bootstrap-icons":"^1.7.1","express":"^4.17.1","socket.io":"^4.4.0"}}
+{
+    "name":"abbaye11-chat",
+    "version":"0.0.1",
+    "description":"Abbaye11 chat",
+    "dependencies":{"bootstrap-icons":"^1.7.1","express":"^4.17.1","socket.io":"^4.4.0"},
+    "scripts": {
+        "start": "node index.js"
+      }
+}
