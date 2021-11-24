@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+      #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem;  display: flex; height: 3rem; box-sizing: border-box; backdrop-filter: blur(10px); }*/
+      #input { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem;}
+      #input:focus { outline: none; }
+      #form > button { background: #333; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
+/*
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages > li { padding: 0.5rem 1rem; }
+      #messages > li:nth-child(odd) { background: #efefef; }
+*/
+      .current-user { color:red; font-weight: bolder;}
+      .label-user-message {margin: 10px; font-weight: bold;}
+      .label-message {font-style: italic;}
+    </style>
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.1/font/bootstrap-icons.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.min.js"></script>
+
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script>
+        
+        var socket = io('http://localhost:3000', {autoConnect: false});
+        //socket.open();
+      
+        $(function () {
+            
+            var currentUser = {}
+            var messages = document.getElementById('messages');
+            var participants = $('#participants');
+            var form = document.getElementById('form');
+            var input = document.getElementById('input');
+
+            $('#modalLoginForm').modal('show')
+            $('#username').val("");
+
+            $('#connect').click(function () {
+                
+                
+                $('#messages-title').html("Messages")
+                $('#personnes-connectes-title').html("Personnes connectées")
+                $('#connect-date').html("Connecté depuis: " + new Date().toLocaleString());
+                $('#deconnect').click(function () {
+                    
+                    socket.emit('user-disconnected', currentUser);
+                    currentUser = {}
+                    socket.close();
+                    participants.empty();
+                    $('#modalLogout').modal('show');
+                    
+                })
+
+                $('#reconnect').click(function () {
+                    $('#modalLogout').modal('hide');
+                    $('#modalLoginForm').modal('show')
+
+                })
+
+                var username = $('#username').val();
+                
+                $.ajax({
+                    url: "/userexist/?username=" + username,
+                    success: function(data, textStatus, xhr) {
+                        console.log(xhr.status)
+                        console.log("connected")
+                        $('#connect-msg').html("Le nom d'utilisateur existe déjà")
+                        $('#username').val("");
+                    },
+                    error: function(xhr) {
+                        currentUser.username = username;
+                        currentUser.connectDate = new Date();
+                        console.log("non connected")
+                        $('#username-welcome').html("Bienvenue " + username)
+                        socket.open();
+                        socket.emit('user-connected', currentUser);
+                        $('#modalLoginForm').modal('hide');
+                    }
+                });
+
+            
+                
+            })
+
+           
+            
+            
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                if (input.value) {
+                    socket.emit('chat-message', {msg:input.value, user:currentUser.username, date: new Date().toLocaleString() });
+                    input.value = '';
+                }
+            });
+      
+            socket.on('chat-message', function(msg) {
+                
+                var messageClass = 'alert alert-danger'
+
+                if(msg.user === currentUser.username){
+                    messageClass = 'alert alert-primary'
+                }
+
+                
+
+                var ligneMessage = $('<div/>')
+                    .addClass(messageClass)
+                    .attr('role','alert')
+                    //.html(msg.date + " > " + msg.user + ", dit: " + msg.msg)
+                    
+                var time = $('<label/>')
+                    .text(msg.date)
+                    .addClass('small')
+                    .appendTo(ligneMessage)
+
+                var user  = $('<label/>')
+                    .text(msg.user + " dit: ")
+                    .addClass("label-user-message")
+                    .appendTo(ligneMessage)
+
+                var message =  $('<label/>')
+                    .text(msg.msg)
+                    .addClass("label-message")
+                    .appendTo(ligneMessage)
+                    
+                ligneMessage.appendTo(messages)
+                
+                var div = document.getElementById("messages-zone");
+                div.scrollTop = div.scrollHeight - div.clientHeight;
+            });
+
+            socket.on('users-updated', function(connectedUsers) {
+
+                participants.empty();
+
+                for(var user in connectedUsers){
+
+                    console.log('it 1')
+
+                    var ligne = $('<div/>')
+                        .addClass('row')
+
+                    var colIcon = $('<div/>')
+                        .addClass('col')
+                        .appendTo(ligne)
+                    
+                    var logo = $('<i/>')
+                        .addClass('bi bi-person')
+                        .attr('role','img')
+                        .appendTo(colIcon) 
+
+                    var currentUserClass = ""    
+
+
+                    if(connectedUsers[user].username === currentUser.username){
+                        currentUserClass = "current-user"
+                    }
+
+                    var colTexte = $('<div/>')
+                        .addClass('col-9')
+                        .addClass(currentUserClass)
+                        .html(connectedUsers[user].username)
+                        .appendTo(ligne)
+
+
+                    ligne.appendTo(participants)
+                    
+                }
+                
+            });
+
+
+            socket.on('still-alive', function () {
+                console.log("Still alive....")
+                socket.emit('alive', currentUser)
+            })
+        })
+
+        var userConnected = function (username) {
+            
+            $.ajax({
+                url: "/userexist/?username=" + username,
+                success: function(data, textStatus, xhr) {
+                    console.log(xhr.status)
+                    return true;
+                },
+                error: function(xhr) {
+                    console.log(xhr.status)
+                    return false;
+                }
+            });
+        }
+
+       
+      </script>
+    </head>
+
+  <body>
+    
+    <div class="container">
+        <!-- ligne haut -->
+        <div class="row">
+          <div class="col text-center">
+            <div class="card">
+                <div class="card-header">
+                    <h1  id="username-welcome"></h1>
+                </div>
+                <div class="card-body">
+                  <p id="connect-date" class="card-text"></p>
+                  <button id="deconnect" type="button" class="btn btn-danger">Déconnection</button>
+                </div>
+              </div>
+           
+            
+          </div>
+        </div>
+        <!-- ligne milieux -->
+        <div class="row">
+          <div class="col">
+            <div class="card" style="width: 18rem;">
+                <div class="card-body">
+                  <h4 style="font-weight: bold;" id="personnes-connectes-title" class="card-title"></h4>
+                  <div id="participants"></div>
+                </div>
+              </div>
+          </div>
+          <div class="col-8">
+            <div class="card" style="width: 100%;">
+                <div id="messages-zone" class="card-body" style="height:40em; overflow:auto">
+                  <h4 style="font-weight: bold;" id="messages-title" class="card-title"></h4>
+                  <div id="messages"></div>
+                </div>
+                <form id="form" action="">
+                    <input style="width:80%;" id="input" autocomplete="off" /><button>Envoyer</button>
+                    </form>
+              </div>  
+            
+          </div>
+        </div>
+      </div>
+
+    
+
+    
+    
+      <div class="modal fade" id="modalLoginForm" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+          <div class="modal-content">
+            <div class="modal-header border-bottom-0">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="form-title text-center">
+                <h4>Login</h4>
+              </div>
+              <div class="d-flex flex-column text-center">
+                <form>
+                  <div class="form-group">
+                    <input type="text" class="form-control" id="username" placeholder="Nom d'utilisateur...">
+                  </div>
+                  <div id="connect-msg"></div>
+                  <button type="button" id="connect" class="btn btn-info btn-block btn-round">Connection</button>
+                </form>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <div class="modal fade" id="modalLogout" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+          <div class="modal-content">
+            <div class="modal-header border-bottom-0">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="form-title text-center">
+                <h4>Vous êtes déconnectez! Au revoir!</h4>
+              </div>
+              <div class="d-flex flex-column text-center">
+                <form>
+                 
+                  <button type="button" id="reconnect" class="btn btn-info btn-block btn-round">Reconnection</button>
+                </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    
+  </body>
+
+  
+
+
+  
+
+</html>
