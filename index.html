@@ -76,7 +76,11 @@
 
                 var username = $('#username').val();
                 
-                $.ajax({
+                if(username === ""){
+                  $('#connect-msg').html("Le nom d'utilisateur ne peut pas être vide")
+                  $('#username').val("");
+                }else{
+                  $.ajax({
                     url: "/userexist/?username=" + username,
                     success: function(data, textStatus, xhr) {
                         console.log(xhr.status)
@@ -94,9 +98,7 @@
                         $('#modalLoginForm').modal('hide');
                     }
                 });
-
-            
-                
+                }
             })
 
            
@@ -234,14 +236,14 @@
         <!-- ligne milieux -->
         <div class="row">
           <div class="col">
-            <div class="card" style="width: 18rem;">
+            <div class="card" style="width: 100%;">
                 <div class="card-body">
                   <h4 style="font-weight: bold;" id="personnes-connectes-title" class="card-title"></h4>
                   <div id="participants"></div>
                 </div>
               </div>
           </div>
-          <div class="col-8">
+          <div class="col-12">
             <div class="card" style="width: 100%;">
                 <div id="messages-zone" class="card-body" style="height:40em; overflow:auto">
                   <h4 style="font-weight: bold;" id="messages-title" class="card-title"></h4>
